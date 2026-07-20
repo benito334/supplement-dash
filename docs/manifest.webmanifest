@@ -1,0 +1,1 @@
+{"name":"Supplement Dash","short_name":"SuppDash","description":"Mix your own powdered supplement batches","start_url":"/supplement-dash/","display":"standalone","background_color":"#ffffff","theme_color":"#1D9E75","lang":"en","scope":"/supplement-dash/","orientation":"portrait","icons":[{"src":"icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}

@@ -1,0 +1,614 @@
+:root {
+  --accent: #1d9e75;
+  --accent-strong: #0f6e56;
+  --bg: #f4f3ee;
+  --surface: #ffffff;
+  --surface-2: #faf9f5;
+  --border: #e4e2da;
+  --border-strong: #d3d1c7;
+  --text: #23221e;
+  --text-2: #6a685f;
+  --text-muted: #97958c;
+  --danger: #a32d2d;
+  --radius: 10px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent: #5dcaa5;
+    --accent-strong: #9fe1cb;
+    --bg: #17181a;
+    --surface: #232427;
+    --surface-2: #1d1e20;
+    --border: #34363a;
+    --border-strong: #45474c;
+    --text: #ececea;
+    --text-2: #a6a49b;
+    --text-muted: #78766e;
+    --danger: #f09595;
+  }
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* ---------- App shell ---------- */
+.app {
+  padding: 12px 12px calc(150px + var(--safe-b));
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 4px 12px;
+}
+.topbar h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+.topbar .sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* ---------- Recipe tabs ---------- */
+.recipe-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 4px 12px;
+  scrollbar-width: none;
+}
+.recipe-bar::-webkit-scrollbar {
+  display: none;
+}
+.chip {
+  flex: none;
+  border: 0.5px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-2);
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.chip.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 500;
+}
+.chip.add {
+  color: var(--text-muted);
+  border-style: dashed;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 4px 10px;
+}
+.actions button {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 500;
+}
+.save-btn {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  transition: background 0.15s;
+}
+.save-btn.done {
+  background: var(--accent-strong);
+}
+.backup-btn {
+  border: 0.5px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+
+/* ---------- Days control ---------- */
+.days {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px;
+}
+.days button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: var(--surface-2);
+  border-radius: 7px;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+}
+.days .val {
+  text-align: center;
+  min-width: 46px;
+}
+.days .val b {
+  font-size: 16px;
+  font-weight: 600;
+  display: block;
+  line-height: 1;
+}
+.days .val span {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ---------- Ingredient card ---------- */
+.card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  transition: opacity 0.15s;
+}
+.card.off {
+  opacity: 0.5;
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.card-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.card-name .name {
+  font-size: 15px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.batch {
+  text-align: right;
+  flex: none;
+}
+.batch b {
+  font-size: 17px;
+  font-weight: 600;
+}
+.batch b .u {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+.batch .excluded {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.batch .cost {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* toggle */
+.tg {
+  flex: none;
+  width: 42px;
+  height: 25px;
+  border-radius: 999px;
+  border: 0.5px solid var(--border-strong);
+  background: var(--surface-2);
+  position: relative;
+  padding: 0;
+  transition: background 0.15s;
+}
+.tg.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.tg .knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: left 0.15s, background 0.15s;
+}
+.tg.on .knob {
+  left: 19px;
+  background: #fff;
+}
+
+/* servings row */
+.serv {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.serv input[type="range"] {
+  flex: 1;
+  accent-color: var(--accent);
+  height: 22px;
+}
+.serv .read {
+  min-width: 92px;
+  text-align: right;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.serv .read b {
+  font-weight: 600;
+  color: var(--text);
+}
+.serv .edit {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 18px;
+  padding: 2px 4px;
+}
+
+.dashed-btn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 13px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ---------- Totals bar ---------- */
+.totals {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--surface);
+  border-top: 0.5px solid var(--border-strong);
+  padding: 10px 12px calc(10px + var(--safe-b));
+}
+.daily {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  padding: 9px 14px;
+  margin-bottom: 9px;
+}
+.daily .l {
+  font-size: 12px;
+  opacity: 0.9;
+}
+.daily .l small {
+  display: block;
+  font-size: 11px;
+  opacity: 0.85;
+}
+.daily .v {
+  font-size: 24px;
+  font-weight: 600;
+  text-align: right;
+}
+.daily .v .u {
+  font-size: 13px;
+  font-weight: 400;
+  opacity: 0.9;
+}
+.daily .v small {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.85;
+}
+.totals-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.stat {
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 7px 8px;
+  text-align: center;
+}
+.stat .l {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.stat .v {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.stat .v .u {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.make-btn {
+  width: 100%;
+  margin-top: 9px;
+  padding: 13px;
+  border-radius: 10px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* ---------- Modal / sheet ---------- */
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 20;
+}
+.sheet {
+  background: var(--bg);
+  width: 100%;
+  max-width: 480px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-radius: 18px 18px 0 0;
+  padding: 16px 16px calc(20px + var(--safe-b));
+}
+.sheet h2 {
+  font-size: 18px;
+  margin: 4px 0 14px;
+}
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.sheet-head .x {
+  border: none;
+  background: var(--surface-2);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
+  color: var(--text-2);
+}
+
+.field {
+  margin-bottom: 12px;
+}
+.field label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 5px;
+}
+.field .hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.field input,
+.field select {
+  width: 100%;
+  height: 44px;
+  border: 0.5px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 12px;
+  font-size: 16px;
+}
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.primary {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+.ghost {
+  width: 100%;
+  padding: 13px;
+  border: 0.5px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+}
+.link-danger {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.seg {
+  display: flex;
+  gap: 6px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+.seg button {
+  flex: 1;
+  border: none;
+  background: none;
+  color: var(--text-2);
+  padding: 9px;
+  border-radius: 7px;
+  font-size: 14px;
+}
+.seg button.active {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 500;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.scan-drop {
+  border: 1px dashed var(--border-strong);
+  border-radius: 12px;
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--text-2);
+  background: var(--surface-2);
+  margin-bottom: 12px;
+}
+.scan-drop i {
+  font-size: 34px;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 8px;
+}
+.scan-preview {
+  width: 100%;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  border: 0.5px solid var(--border);
+}
+.badge-soft {
+  display: inline-block;
+  font-size: 12px;
+  background: var(--surface-2);
+  border: 0.5px solid var(--border);
+  color: var(--text-2);
+  border-radius: 999px;
+  padding: 3px 10px;
+  margin-bottom: 12px;
+}
+
+/* ---------- Make it checklist ---------- */
+.check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.check.done {
+  opacity: 0.55;
+}
+.check .box {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 1.5px solid var(--border-strong);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 16px;
+}
+.check.done .box {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.check .n {
+  flex: 1;
+  min-width: 0;
+}
+.check .n .nm {
+  font-size: 15px;
+  font-weight: 500;
+}
+.check.done .n .nm {
+  text-decoration: line-through;
+}
+.check .n .sub {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.check .amt {
+  font-size: 18px;
+  font-weight: 600;
+  text-align: right;
+}
+.check .amt .u {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.empty {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 20px;
+  font-size: 14px;
+}
