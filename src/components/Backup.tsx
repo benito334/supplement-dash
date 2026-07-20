@@ -6,8 +6,7 @@ interface Props {
   onClose: () => void;
 }
 
-const SETUP_URL =
-  "https://github.com/benito334/supplement-dash/blob/main/google-apps-script/SETUP.md";
+const SETUP_URL = "https://github.com/benito334/supplement-dash/blob/main/sheet-sync/SETUP.md";
 
 export function Backup({ onClose }: Props) {
   const exportData = useStore((s) => s.exportData);
@@ -18,7 +17,8 @@ export function Backup({ onClose }: Props) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const sync = useSync();
-  const [urlInput, setUrlInput] = useState(sync.url);
+  const [prefillInput, setPrefillInput] = useState(sync.config?.prefillLink ?? "");
+  const [csvInput, setCsvInput] = useState(sync.config?.csvUrl ?? "");
 
   function doExport() {
     const data = exportData();
@@ -59,7 +59,7 @@ export function Backup({ onClose }: Props) {
     reader.readAsText(file);
   }
 
-  const connected = sync.status !== "off";
+  const connected = !!sync.config;
   const statusText =
     sync.status === "syncing"
       ? "Syncing…"
@@ -85,26 +85,57 @@ export function Backup({ onClose }: Props) {
           <i className="ti ti-cloud" /> Google Sheet sync
         </h3>
         <p style={{ fontSize: 13, color: "var(--text-2)", margin: "0 0 12px" }}>
-          Keep your mix identical on every device. Paste your Google Apps Script Web App URL below —{" "}
-          <a href={SETUP_URL} target="_blank" rel="noreferrer" style={{ color: "var(--text-accent, var(--accent-strong))" }}>
+          Hitting <b>Save</b> adds your mix as a new row in a Google Sheet. Opening the app on any
+          device pulls the most recent row. No script —{" "}
+          <a
+            href={SETUP_URL}
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "var(--text-accent, var(--accent-strong))" }}
+          >
             5-minute setup guide
           </a>
           .
         </p>
 
-        <div className="field">
-          <input
-            type="url"
-            placeholder="https://script.google.com/macros/s/…/exec"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-          />
-        </div>
-
         {!connected ? (
-          <button className="primary" onClick={() => sync.setUrl(urlInput)} disabled={!urlInput.trim()}>
-            <i className="ti ti-plug" /> Connect
-          </button>
+          <>
+            <div className="field">
+              <label>Pre-filled form link</label>
+              <input
+                type="url"
+                placeholder="https://docs.google.com/forms/d/e/…/viewform?…entry.…"
+                value={prefillInput}
+                onChange={(e) => setPrefillInput(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Published CSV link</label>
+              <input
+                type="url"
+                placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?…output=csv"
+                value={csvInput}
+                onChange={(e) => setCsvInput(e.target.value)}
+              />
+            </div>
+            <button
+              className="primary"
+              onClick={() => void sync.connect(prefillInput, csvInput)}
+              disabled={!prefillInput.trim() || !csvInput.trim() || sync.status === "syncing"}
+            >
+              <i className="ti ti-plug" /> Connect
+            </button>
+            {sync.status === "error" && (
+              <div className="badge-soft" style={{ marginTop: 10, color: "var(--danger)", borderColor: "var(--danger)" }}>
+                {sync.message}
+              </div>
+            )}
+            {sync.status === "syncing" && (
+              <div className="badge-soft" style={{ marginTop: 10 }}>
+                <i className="ti ti-loader" /> Connecting…
+              </div>
+            )}
+          </>
         ) : (
           <>
             <div
@@ -118,14 +149,15 @@ export function Backup({ onClose }: Props) {
               {sync.status === "syncing" && <i className="ti ti-loader" />} {statusText}
             </div>
             <div className="row2">
-              <button className="ghost" onClick={() => sync.syncNow()}>
-                <i className="ti ti-refresh" /> Sync now
+              <button className="ghost" onClick={() => void sync.pullLatest()}>
+                <i className="ti ti-download" /> Pull latest
               </button>
               <button
                 className="ghost"
                 onClick={() => {
                   sync.disconnect();
-                  setUrlInput("");
+                  setPrefillInput("");
+                  setCsvInput("");
                 }}
               >
                 Disconnect

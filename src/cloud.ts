@@ -1,71 +1,108 @@
 import { create } from "zustand";
-import { useStore, type Backup } from "./store";
-import { loadRemote, saveRemote } from "./sync";
+import { useStore } from "./store";
+import { parseFormLink, pushRow, fetchLatestRow, type SheetConfig } from "./sync";
 
-const URL_KEY = "supplement-dash-sync-url";
-const AT_KEY = "supplement-dash-sync-updatedAt";
-const PUSH_DEBOUNCE_MS = 1500;
+const CONFIG_KEY = "supplement-dash-sheet-config";
 
 type Status = "off" | "idle" | "syncing" | "ok" | "error";
 
+interface StoredConfig extends SheetConfig {
+  prefillLink: string;
+  csvUrl: string;
+}
+
 interface SyncStore {
-  url: string;
+  config: StoredConfig | null;
   status: Status;
   message: string;
   lastSyncedAt: number | null;
-  setUrl: (url: string) => void;
+  connect: (prefillLink: string, csvUrl: string) => Promise<void>;
   disconnect: () => void;
-  syncNow: () => Promise<void>;
+  pullLatest: () => Promise<void>;
+  pushCurrent: () => Promise<void>;
   init: () => void;
 }
 
-// Device-local sync state (kept OUT of the synced payload).
-let localUpdatedAt = Number(localStorage.getItem(AT_KEY) || 0);
-let suppress = false; // true while applying a remote pull, so it doesn't echo back
-let timer: number | undefined;
-let started = false;
-
-function markLocalChange() {
-  localUpdatedAt = Date.now();
-  localStorage.setItem(AT_KEY, String(localUpdatedAt));
+function loadConfig(): StoredConfig | null {
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    return raw ? (JSON.parse(raw) as StoredConfig) : null;
+  } catch {
+    return null;
+  }
 }
 
+let started = false;
+
 export const useSync = create<SyncStore>((set, get) => ({
-  url: localStorage.getItem(URL_KEY) || "",
-  status: localStorage.getItem(URL_KEY) ? "idle" : "off",
+  config: loadConfig(),
+  status: loadConfig() ? "idle" : "off",
   message: "",
   lastSyncedAt: null,
 
-  setUrl: (raw) => {
-    const url = raw.trim();
-    localStorage.setItem(URL_KEY, url);
-    set({ url, status: url ? "idle" : "off", message: "" });
-    if (url) void get().syncNow();
+  connect: async (prefillLink, csvUrl) => {
+    prefillLink = prefillLink.trim();
+    csvUrl = csvUrl.trim();
+    if (!prefillLink || !csvUrl) {
+      set({ status: "error", message: "Both links are required." });
+      return;
+    }
+    let parsed;
+    try {
+      parsed = parseFormLink(prefillLink);
+    } catch (e) {
+      set({ status: "error", message: errMsg(e) });
+      return;
+    }
+    const config: StoredConfig = { ...parsed, csvUrl, prefillLink };
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    set({ config, status: "syncing", message: "" });
+    try {
+      const latest = await fetchLatestRow(csvUrl);
+      if (latest) {
+        useStore.getState().importData(latest.data);
+        set({ status: "ok", message: "Pulled latest mix from the sheet", lastSyncedAt: Date.now() });
+      } else {
+        // Empty sheet — seed it with what's here now.
+        await pushRow(config, useStore.getState().exportData());
+        set({ status: "ok", message: "Sheet was empty — saved current mix", lastSyncedAt: Date.now() });
+      }
+    } catch (e) {
+      set({ status: "error", message: errMsg(e) });
+    }
   },
 
   disconnect: () => {
-    localStorage.removeItem(URL_KEY);
-    set({ url: "", status: "off", message: "", lastSyncedAt: null });
+    localStorage.removeItem(CONFIG_KEY);
+    set({ config: null, status: "off", message: "", lastSyncedAt: null });
   },
 
-  syncNow: async () => {
-    const url = get().url;
-    if (!url) return;
+  pullLatest: async () => {
+    const config = get().config;
+    if (!config) return;
     set({ status: "syncing", message: "" });
     try {
-      const remote = await loadRemote(url);
-      if (remote && remote.updatedAt > localUpdatedAt) {
-        // Sheet is newer — adopt it.
-        suppress = true;
-        useStore.getState().importData(remote.data);
-        suppress = false;
-        localUpdatedAt = remote.updatedAt;
-        localStorage.setItem(AT_KEY, String(localUpdatedAt));
-        set({ status: "ok", message: "Pulled from sheet", lastSyncedAt: Date.now() });
+      const latest = await fetchLatestRow(config.csvUrl);
+      if (latest) {
+        useStore.getState().importData(latest.data);
+        set({ status: "ok", message: "Pulled latest mix from the sheet", lastSyncedAt: Date.now() });
       } else {
-        // Local is newer, or the sheet is empty — push local up.
-        await pushNow(url);
+        set({ status: "ok", message: "No entries in the sheet yet", lastSyncedAt: Date.now() });
       }
+    } catch (e) {
+      set({ status: "error", message: errMsg(e) });
+    }
+  },
+
+  pushCurrent: async () => {
+    const config = get().config;
+    if (!config) return;
+    set({ status: "syncing", message: "" });
+    try {
+      await pushRow(config, useStore.getState().exportData());
+      // Fire-and-forget (no-cors) — we can't confirm the sheet received it,
+      // only that the request went out without a network error.
+      set({ status: "ok", message: "Saved to sheet", lastSyncedAt: Date.now() });
     } catch (e) {
       set({ status: "error", message: errMsg(e) });
     }
@@ -74,31 +111,10 @@ export const useSync = create<SyncStore>((set, get) => ({
   init: () => {
     if (started) return;
     started = true;
-    // Push local edits (debounced) whenever the mix changes.
-    useStore.subscribe(() => {
-      if (suppress || !get().url) return;
-      markLocalChange();
-      window.clearTimeout(timer);
-      timer = window.setTimeout(() => void pushNow(get().url), PUSH_DEBOUNCE_MS);
-    });
-    if (get().url) void get().syncNow();
+    // On load, adopt whatever is most recent in the sheet.
+    if (get().config) void get().pullLatest();
   },
 }));
-
-async function pushNow(url: string) {
-  if (!url) return;
-  useSync.setState({ status: "syncing", message: "" });
-  try {
-    const now = Date.now();
-    localUpdatedAt = now;
-    localStorage.setItem(AT_KEY, String(now));
-    const data = useStore.getState().exportData() as Backup;
-    await saveRemote(url, { updatedAt: now, data });
-    useSync.setState({ status: "ok", message: "Saved to sheet", lastSyncedAt: Date.now() });
-  } catch (e) {
-    useSync.setState({ status: "error", message: errMsg(e) });
-  }
-}
 
 function errMsg(e: unknown): string {
   return e instanceof Error ? e.message : String(e);

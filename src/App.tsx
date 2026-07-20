@@ -23,9 +23,11 @@ export default function App() {
     store.save();
     setJustSaved(true);
     window.setTimeout(() => setJustSaved(false), 1600);
+    // If a sheet is connected, Save also appends the current mix as a new row.
+    if (useSync.getState().config) void useSync.getState().pushCurrent();
   }
 
-  // Start cloud sync (pull on open, push on change) if a sheet is connected.
+  // On open, if a sheet is connected, pull the most recent entry and use it.
   const syncStatus = useSync((s) => s.status);
   useEffect(() => {
     useSync.getState().init();
