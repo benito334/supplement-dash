@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useStore } from "./store";
+import { useSync } from "./cloud";
 import { buildLines, totals as computeTotals } from "./compute";
 import { IngredientCard } from "./components/IngredientCard";
 import { TotalsBar } from "./components/TotalsBar";
@@ -23,6 +24,12 @@ export default function App() {
     setJustSaved(true);
     window.setTimeout(() => setJustSaved(false), 1600);
   }
+
+  // Start cloud sync (pull on open, push on change) if a sheet is connected.
+  const syncStatus = useSync((s) => s.status);
+  useEffect(() => {
+    useSync.getState().init();
+  }, []);
 
   const lines = useMemo(
     () => buildLines(recipe, (id) => store.ingredients.find((i) => i.id === id)),
@@ -72,7 +79,19 @@ export default function App() {
           {justSaved ? "Saved" : "Save"}
         </button>
         <button className="backup-btn" onClick={() => setShowBackup(true)}>
-          <i className="ti ti-archive" /> Backup
+          <i
+            className={
+              "ti " +
+              (syncStatus === "syncing"
+                ? "ti-loader"
+                : syncStatus === "error"
+                  ? "ti-cloud-x"
+                  : syncStatus === "off"
+                    ? "ti-cloud"
+                    : "ti-cloud-check")
+            }
+          />{" "}
+          Sync
         </button>
       </div>
 
