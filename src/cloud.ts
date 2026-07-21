@@ -1,8 +1,10 @@
 import { create } from "zustand";
 import { useStore } from "./store";
 import { parseFormLink, pushRow, fetchLatestRow, type SheetConfig } from "./sync";
+import { DEFAULT_PREFILL_LINK, DEFAULT_CSV_URL } from "./syncDefaults";
 
 const CONFIG_KEY = "supplement-dash-sheet-config";
+const DISCONNECTED_KEY = "supplement-dash-sheet-disconnected";
 
 type Status = "off" | "idle" | "syncing" | "ok" | "error";
 
@@ -32,11 +34,36 @@ function loadConfig(): StoredConfig | null {
   }
 }
 
+function buildConfig(prefillLink: string, csvUrl: string): StoredConfig {
+  return { ...parseFormLink(prefillLink), csvUrl, prefillLink };
+}
+
+/**
+ * Resolve the config to use on a fresh load: whatever's saved, or — on a
+ * brand-new device that hasn't explicitly disconnected — the baked-in
+ * defaults (auto-saved so it behaves identically to a manual connect from
+ * here on, including a real Disconnect sticking across reloads).
+ */
+function resolveInitialConfig(): StoredConfig | null {
+  const saved = loadConfig();
+  if (saved) return saved;
+  if (localStorage.getItem(DISCONNECTED_KEY)) return null;
+  if (!DEFAULT_PREFILL_LINK || !DEFAULT_CSV_URL) return null;
+  try {
+    const config = buildConfig(DEFAULT_PREFILL_LINK, DEFAULT_CSV_URL);
+    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    return config;
+  } catch {
+    return null;
+  }
+}
+
 let started = false;
+const initialConfig = resolveInitialConfig();
 
 export const useSync = create<SyncStore>((set, get) => ({
-  config: loadConfig(),
-  status: loadConfig() ? "idle" : "off",
+  config: initialConfig,
+  status: initialConfig ? "idle" : "off",
   message: "",
   lastSyncedAt: null,
 
@@ -47,15 +74,15 @@ export const useSync = create<SyncStore>((set, get) => ({
       set({ status: "error", message: "Both links are required." });
       return;
     }
-    let parsed;
+    let config: StoredConfig;
     try {
-      parsed = parseFormLink(prefillLink);
+      config = buildConfig(prefillLink, csvUrl);
     } catch (e) {
       set({ status: "error", message: errMsg(e) });
       return;
     }
-    const config: StoredConfig = { ...parsed, csvUrl, prefillLink };
     localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    localStorage.removeItem(DISCONNECTED_KEY);
     set({ config, status: "syncing", message: "" });
     try {
       const latest = await fetchLatestRow(csvUrl);
@@ -74,6 +101,7 @@ export const useSync = create<SyncStore>((set, get) => ({
 
   disconnect: () => {
     localStorage.removeItem(CONFIG_KEY);
+    localStorage.setItem(DISCONNECTED_KEY, "1");
     set({ config: null, status: "off", message: "", lastSyncedAt: null });
   },
 
