@@ -15,6 +15,7 @@ export function EditIngredient({ ingredient, onSave, onRemove, onClose }: Props)
   const [density, setDensity] = useState(String(ingredient.density));
   const [costPerGram, setCostPerGram] = useState(String(ingredient.costPerGram));
   const [percentOfMix, setPercentOfMix] = useState(String(ingredient.percentOfMix ?? ""));
+  const [proteinGrams, setProteinGrams] = useState(String(ingredient.proteinGrams ?? ""));
 
   function save() {
     onSave({
@@ -22,6 +23,7 @@ export function EditIngredient({ ingredient, onSave, onRemove, onClose }: Props)
       servingGrams: Math.max(0, parseFloat(servingGrams) || 0),
       density: Math.max(0.01, parseFloat(density) || ingredient.density),
       costPerGram: Math.max(0, parseFloat(costPerGram) || 0),
+      proteinGrams: Math.max(0, parseFloat(proteinGrams) || 0),
       ...(isPercent ? { percentOfMix: Math.max(0, parseFloat(percentOfMix) || 0) } : {}),
     });
     onClose();
@@ -77,6 +79,18 @@ export function EditIngredient({ ingredient, onSave, onRemove, onClose }: Props)
               onChange={(e) => setCostPerGram(e.target.value)}
             />
           </div>
+        </div>
+
+        <div className="field">
+          <label>Protein per serving (grams)</label>
+          <input
+            type="number"
+            inputMode="decimal"
+            placeholder="0"
+            value={proteinGrams}
+            onChange={(e) => setProteinGrams(e.target.value)}
+          />
+          <div className="hint">Leave at 0 for non-protein ingredients. Check the label for the exact figure.</div>
         </div>
 
         <div className="field">

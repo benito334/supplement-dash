@@ -11,6 +11,7 @@ export interface Line {
   scoop: Scoop;
   costPerDay: number;
   costPerBatch: number;
+  proteinPerDay: number;
   /** effective percent of the mix (percentOfMix × servings), for % ingredients */
   effectivePercent?: number;
 }
@@ -24,6 +25,7 @@ export interface Totals {
   /** volume of one day's serving to scoop from the finished mix */
   dailyCc: number;
   dailyVolume: Scoop;
+  dailyProteinGrams: number;
 }
 
 export function buildLines(recipe: Recipe, lookup: (id: string) => Ingredient | undefined): Line[] {
@@ -59,6 +61,7 @@ export function buildLines(recipe: Recipe, lookup: (id: string) => Ingredient | 
       scoop: toScoop(batchGrams, ing.density),
       costPerDay: perDayGrams * ing.costPerGram,
       costPerBatch: batchGrams * ing.costPerGram,
+      proteinPerDay: (ing.proteinGrams ?? 0) * it.servings,
       effectivePercent,
     } as Line;
   });
@@ -70,6 +73,7 @@ export function totals(lines: Line[]): Totals {
   const totalTsp = active.reduce((a, l) => a + l.batchTsp, 0);
   const costPerBatch = active.reduce((a, l) => a + l.costPerBatch, 0);
   const costPerDay = active.reduce((a, l) => a + l.costPerDay, 0);
+  const dailyProteinGrams = active.reduce((a, l) => a + l.proteinPerDay, 0);
   // Per-day serving volume — independent of batch length.
   const dailyTsp = active.reduce(
     (a, l) => a + (l.ingredient.density ? l.perDayGrams / l.ingredient.density : 0),
@@ -83,5 +87,6 @@ export function totals(lines: Line[]): Totals {
     activeCount: active.length,
     dailyCc: dailyTsp * CC_PER_TSP,
     dailyVolume: volumeScoop(dailyTsp),
+    dailyProteinGrams,
   };
 }

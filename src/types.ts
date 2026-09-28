@@ -14,6 +14,8 @@ export interface Ingredient {
    * sweetener (cocoa, monk fruit) so they auto-scale with the batch.
    */
   percentOfMix?: number;
+  /** grams of protein in one full serving — omit/0 for non-protein ingredients */
+  proteinGrams?: number;
   /** optional label data captured from a photo / link */
   servingsPerContainer?: number;
   containerCost?: number;

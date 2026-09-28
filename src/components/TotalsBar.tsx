@@ -24,6 +24,13 @@ export function TotalsBar({ totals, onMake }: Props) {
           </div>
         </div>
         <div className="stat">
+          <div className="l">Protein</div>
+          <div className="v">
+            {Math.round(totals.dailyProteinGrams)}
+            <span className="u"> g</span>
+          </div>
+        </div>
+        <div className="stat">
           <div className="l">Cost/day</div>
           <div className="v">${totals.costPerDay.toFixed(2)}</div>
         </div>

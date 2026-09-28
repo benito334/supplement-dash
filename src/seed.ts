@@ -8,6 +8,7 @@ interface Seed {
   servingGrams?: number;
   tsp?: number; // used to derive density / servingGrams when grams missing
   costPerGram?: number;
+  proteinGrams?: number;
   recipe: "daily" | "addons";
   enabled?: boolean;
 }
@@ -17,7 +18,7 @@ interface Seed {
 const SEEDS: Seed[] = [
   { id: "resveratrol", name: "Resveratrol", servingGrams: 2, tsp: 0.774, costPerGram: 0.15, recipe: "daily", enabled: true },
   { id: "molk", name: "MOLK", servingGrams: 34, tsp: 16.231, costPerGram: 0.045, recipe: "daily", enabled: true },
-  { id: "pea-protein", name: "Pea protein", servingGrams: 15, tsp: 6.492, costPerGram: 0.012, recipe: "daily", enabled: true },
+  { id: "pea-protein", name: "Pea protein", servingGrams: 15, tsp: 6.492, costPerGram: 0.012, proteinGrams: 12, recipe: "daily", enabled: true },
   { id: "norcal-fiber", name: "NorCal fiber", tsp: 3, recipe: "daily", enabled: true },
   { id: "inulin", name: "Inulin", tsp: 0.5, recipe: "daily", enabled: true },
   { id: "guar-gum", name: "Guar gum", tsp: 0.5, recipe: "daily", enabled: false },
@@ -45,19 +46,23 @@ function toIngredient(s: Seed): Ingredient {
     servingGrams: Math.round(servingGrams * 100) / 100,
     density: Math.round(density * 100) / 100,
     costPerGram: s.costPerGram ?? 0,
+    ...(s.proteinGrams ? { proteinGrams: s.proteinGrams } : {}),
   };
 }
 
 // Real products the user added from Amazon links (July 2026 prices).
 // costPerGram = container price / total grams in container. density is a best
 // estimate of g per level tsp; calibrate per-ingredient for exact scoop amounts.
+// proteinGrams: beef-protein-pp is from the verified label ("1 scoop = 20g
+// complete protein"); the others are typical-for-the-powder-type estimates
+// (not read off a label) — correct them via the edit screen if you want exact.
 export const NEW_PRODUCTS: Ingredient[] = [
-  { id: "beef-protein-pp", name: "Beef protein (Peak)", servingGrams: 30, density: 2.0, costPerGram: 0.0555, servingsPerContainer: 30, containerCost: 49.95 },
-  { id: "egg-white-now", name: "Egg white protein (NOW)", servingGrams: 20, density: 1.9, costPerGram: 0.0441, servingsPerContainer: 113, containerCost: 99.99 },
+  { id: "beef-protein-pp", name: "Beef protein (Peak)", servingGrams: 30, density: 2.0, costPerGram: 0.0555, proteinGrams: 20, servingsPerContainer: 30, containerCost: 49.95 },
+  { id: "egg-white-now", name: "Egg white protein (NOW)", servingGrams: 20, density: 1.9, costPerGram: 0.0441, proteinGrams: 17, servingsPerContainer: 113, containerCost: 99.99 },
   { id: "l-leucine", name: "L-Leucine", servingGrams: 5, density: 2.8, costPerGram: 0.0439, servingsPerContainer: 100, containerCost: 21.95 },
   { id: "healthy-fiber-phgg", name: "Healthy Fiber (Sunfiber)", servingGrams: 6, density: 2.5, costPerGram: 0.0844, servingsPerContainer: 37, containerCost: 18.99 },
   { id: "triple-fiber", name: "Triple fiber (Micro Ingr.)", servingGrams: 8, density: 2.3, costPerGram: 0.0409, servingsPerContainer: 113, containerCost: 36.95 },
-  { id: "naked-pea", name: "Naked Pea protein", servingGrams: 30, density: 2.31, costPerGram: 0.0254, servingsPerContainer: 76, containerCost: 57.99 },
+  { id: "naked-pea", name: "Naked Pea protein", servingGrams: 30, density: 2.31, costPerGram: 0.0254, proteinGrams: 24, servingsPerContainer: 76, containerCost: 57.99 },
   { id: "calcium-ascorbate", name: "Calcium ascorbate (Buffered C)", servingGrams: 1, density: 2.4, costPerGram: 0.0419, servingsPerContainer: 500, containerCost: 20.97 },
   { id: "quercetin-bulk", name: "Quercetin (Bulk)", servingGrams: 1, density: 1.18, costPerGram: 0.1639, servingsPerContainer: 250, containerCost: 40.97 },
   { id: "lions-mane-extract", name: "Lion's mane extract (Bulk)", servingGrams: 1, density: 2.0, costPerGram: 0.0559, servingsPerContainer: 500, containerCost: 27.97 },

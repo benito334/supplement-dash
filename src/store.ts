@@ -71,6 +71,39 @@ function setPercentMode(s: AppState, byId: Record<string, number>): AppState {
   };
 }
 
+// Set proteinGrams on existing pantry ingredients by id (only where not already set).
+function setProteinGrams(s: AppState, byId: Record<string, number>): AppState {
+  return {
+    ...s,
+    ingredients: s.ingredients.map((i) =>
+      byId[i.id] != null && i.proteinGrams == null ? { ...i, proteinGrams: byId[i.id] } : i
+    ),
+  };
+}
+
+const PERCENT_DEFAULTS: Record<string, number> = { cocoa: 5, "monk-fruit": 0.15 };
+const PROTEIN_DEFAULTS: Record<string, number> = {
+  "pea-protein": 12,
+  "beef-protein-pp": 20,
+  "egg-white-now": 17,
+  "naked-pea": 24,
+};
+
+// Fill in current-schema defaults for known ingredient ids that are missing a
+// field — safe to run on ANY incoming ingredient list (local rehydration, a
+// sheet pull, or a backup-file restore), since it only ever fills in a blank,
+// never adds/removes ingredients or touches a value the source already set.
+// This matters because a sheet pull (or an old backup) REPLACES the whole
+// ingredients array wholesale — without this, adopting an older snapshot
+// would silently erase percentOfMix/proteinGrams that a migration once added.
+function backfillIngredientFields(ingredients: Ingredient[]): Ingredient[] {
+  return ingredients.map((i) => ({
+    ...i,
+    percentOfMix: i.percentOfMix ?? PERCENT_DEFAULTS[i.id],
+    proteinGrams: i.proteinGrams ?? PROTEIN_DEFAULTS[i.id],
+  }));
+}
+
 export const useStore = create<Store>()(
   persist(
     (set, get) => ({
@@ -170,7 +203,7 @@ export const useStore = create<Store>()(
 
       importData: (data) =>
         set(() => ({
-          ingredients: data.ingredients,
+          ingredients: backfillIngredientFields(data.ingredients),
           recipes: data.recipes,
           activeRecipeId:
             data.recipes.find((r) => r.id === data.activeRecipeId)?.id ??
@@ -190,7 +223,7 @@ export const useStore = create<Store>()(
       // One-time migrations. Unlike `merge` (which re-runs every load and fights
       // deletions), a migration runs ONCE when the stored version is older, and
       // its result is written to storage — so it can't resurrect later deletes.
-      version: 4,
+      version: 5,
       // Version-gated so each step runs only for stores older than it — this
       // avoids re-adding items a user deleted in a later version.
       migrate: (persisted, version) => {
@@ -198,7 +231,8 @@ export const useStore = create<Store>()(
         if (!s || !Array.isArray(s.ingredients) || !Array.isArray(s.recipes)) return s;
         if (version < 2) s = addToDaily(s, NEW_PRODUCTS); // the 9 Amazon products
         if (version < 3) s = addToDaily(s, FLAVOR_ADDITIONS); // cocoa + monk fruit
-        if (version < 4) s = setPercentMode(s, { cocoa: 5, "monk-fruit": 0.15 }); // % of mix
+        if (version < 4) s = setPercentMode(s, PERCENT_DEFAULTS); // % of mix
+        if (version < 5) s = setProteinGrams(s, PROTEIN_DEFAULTS); // protein-per-serving
         return s;
       },
     }
